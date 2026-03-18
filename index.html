@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+
+<title>FASOKOCOM</title>
+
+<style>
+
+body{
+
+background-image:url("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSFEpCV2eSOp2zF9SwupRDJ73_o2fvxfeW31w&s");
+background-size:cover;
+background-position:center;
+font-family:Arial;
+color:white;
+text-align:center;
+
+}
+
+.overlay{
+
+background:rgba(0,0,0,0.6);
+height:100vh;
+padding-top:40px;
+
+}
+
+h1{
+
+font-size:40px;
+color:#00ff9c;
+
+}
+
+button{
+
+padding:15px;
+font-size:18px;
+margin:10px;
+border:none;
+border-radius:8px;
+background:#00ff9c;
+color:black;
+font-weight:bold;
+cursor:pointer;
+
+}
+
+#map{
+height:400px;
+width:90%;
+margin:auto;
+border-radius:10px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="overlay">
+
+<h1>🇲🇱 FASOKOCOM</h1>
+
+<p>Communication tactique militaire</p>
+
+<button onclick="talk()">🎙 PARLER</button>
+
+<button onclick="showPosition()">📍 MA POSITION</button>
+
+<button onclick="showMap()">🗺 CARTE DE L'ÉQUIPE</button>
+
+<p id="position"></p>
+
+<div id="map"></div>
+
+</div>
+
+<script>
+
+function talk(){
+
+navigator.mediaDevices.getUserMedia({audio:true})
+
+.then(function(stream){
+
+alert("Microphone activé");
+
+})
+
+}
+
+var map = L.map('map').setView([12.6392, -8.0029], 13);
+let marker;
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+maxZoom:19
+}).addTo(map);
+
+function showPosition(){
+
+navigator.geolocation.getCurrentPosition(function(pos){
+
+let lat = pos.coords.latitude;
+let lon = pos.coords.longitude;
+
+document.getElementById("position").innerHTML =
+"Latitude : "+lat+"<br>Longitude : "+lon;
+
+map.setView([lat, lon], 15);
+
+L.marker([lat, lon]).addTo(map)
+.bindPopup("Ma position")
+.openPopup();
+
+});
+
+}
+
+function showMap(){
+alert("Carte activée");
+}
+
+function startTracking(){
+
+navigator.geolocation.watchPosition(function(pos){
+
+let lat = pos.coords.latitude;
+let lon = pos.coords.longitude;
+
+// centrer la carte
+map.setView([lat, lon], 15);
+
+// supprimer ancien marqueur
+if(marker){
+map.removeLayer(marker);
+}
+
+// nouveau marqueur
+marker = L.marker([lat, lon]).addTo(map)
+.bindPopup("Position en temps réel")
+.openPopup();
+
+});
+
+}
+startTracking();
+
+</script>
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+</body>
+
+</html>
+
