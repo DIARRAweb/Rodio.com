@@ -79,6 +79,8 @@ border-radius:10px;
 
 </div>
 
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
 <script>
 
 function talk(){
@@ -112,7 +114,11 @@ document.getElementById("position").innerHTML =
 
 map.setView([lat, lon], 15);
 
-L.marker([lat, lon]).addTo(map)
+if(marker){
+map.removeLayer(marker);
+}
+
+marker = L.marker([lat, lon]).addTo(map)
 .bindPopup("Ma position")
 .openPopup();
 
@@ -150,7 +156,7 @@ marker = L.marker([lat, lon]).addTo(map)
 startTracking();
 
 </script>
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
 
 </body>
 
