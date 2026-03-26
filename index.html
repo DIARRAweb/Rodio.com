@@ -3,8 +3,8 @@
 
 <head>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
-
-<title>FASOKOCOM</title>
+    <title>FASOKOCOM</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
 
@@ -55,6 +55,33 @@ margin:auto;
 border-radius:10px;
 }
 
+@media (max-width: 768px){
+
+  h1{
+    font-size: 28px;
+  }
+
+  p{
+    font-size: 14px;
+  }
+
+  button{
+    width: 90%;
+    font-size: 16px;
+    padding: 14px;
+    margin: 8px auto;
+    display: block;
+  }
+
+  #map{
+    height: 450px;
+    width: 95%;
+  }
+
+  .overlay{
+    padding-top: 20px;
+  }
+}
 </style>
 
 </head>
@@ -81,82 +108,103 @@ border-radius:10px;
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
-<script>
+<script type="module">
 
-function talk(){
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
+import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-database.js";
 
-navigator.mediaDevices.getUserMedia({audio:true})
+const firebaseConfig = {
+  apiKey: "AIzaSyDBrKBLYtEKUQixjNNDtvyD7CoxmjxD8P0",
+  authDomain: "fasokocom.firebaseapp.com",
+  projectId: "fasokocom",
+  storageBucket: "fasokocom.firebasestorage.app",
+  messagingSenderId: "90229130014",
+  appId: "1:90229130014:web:f34b0b33d51a2de13bff0f"
+};
 
-.then(function(stream){
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
 
-alert("Microphone activé");
+// ID unique de l'utilisateur
+let userId = "agent_" + Math.floor(Math.random() * 100000);
 
-})
-
-}
-
-var map = L.map('map').setView([12.6392, -8.0029], 13);
-let marker;
+// Carte Leaflet
+let map = L.map('map').setView([12.6392, -8.0029], 13);
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-maxZoom:19
+  maxZoom: 19
 }).addTo(map);
 
-function showPosition(){
+// Marqueurs des agents
+let markers = {};
 
-navigator.geolocation.getCurrentPosition(function(pos){
-
-let lat = pos.coords.latitude;
-let lon = pos.coords.longitude;
-
-document.getElementById("position").innerHTML =
-"Latitude : "+lat+"<br>Longitude : "+lon;
-
-map.setView([lat, lon], 15);
-
-if(marker){
-map.removeLayer(marker);
+// Fonction talk
+window.talk = function(){
+  navigator.mediaDevices.getUserMedia({audio:true})
+  .then(() => {
+    alert("Microphone activé");
+  });
 }
 
-marker = L.marker([lat, lon]).addTo(map)
-.bindPopup("Ma position")
-.openPopup();
+// Afficher position
+window.showPosition = function(){
+  navigator.geolocation.getCurrentPosition(function(pos){
+
+    let lat = pos.coords.latitude;
+    let lon = pos.coords.longitude;
+
+    document.getElementById("position").innerHTML =
+    "Latitude : "+lat+"<br>Longitude : "+lon;
+
+    map.setView([lat, lon], 15);
+  });
+}
+
+// Carte activée
+window.showMap = function(){
+  alert("Carte activée");
+}
+
+// Tracking automatique + envoi Firebase
+navigator.geolocation.watchPosition((pos) => {
+
+  let lat = pos.coords.latitude;
+  let lon = pos.coords.longitude;
+
+  document.getElementById("position").innerHTML =
+  "Latitude : "+lat+"<br>Longitude : "+lon;
+
+  // envoyer position à Firebase
+  set(ref(db, "users/" + userId), {
+    latitude: lat,
+    longitude: lon
+  });
 
 });
 
-}
+// Lire les positions de tous les agents en temps réel
+onValue(ref(db, "users"), (snapshot) => {
 
-function showMap(){
-alert("Carte activée");
-}
+  const data = snapshot.val();
 
-function startTracking(){
+  if(!data) return;
 
-navigator.geolocation.watchPosition(function(pos){
+  for (let id in data) {
 
-let lat = pos.coords.latitude;
-let lon = pos.coords.longitude;
+    let user = data[id];
 
-// centrer la carte
-map.setView([lat, lon], 15);
+    if(markers[id]){
+      map.removeLayer(markers[id]);
+    }
 
-// supprimer ancien marqueur
-if(marker){
-map.removeLayer(marker);
-}
-
-// nouveau marqueur
-marker = L.marker([lat, lon]).addTo(map)
-.bindPopup("Position en temps réel")
-.openPopup();
+    markers[id] = L.marker([user.latitude, user.longitude])
+      .addTo(map)
+      .bindPopup(id);
+  }
 
 });
-
-}
-startTracking();
 
 </script>
-
 
 </body>
 
