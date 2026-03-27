@@ -79,8 +79,11 @@ border-radius:10px;
   }
 
   .overlay{
-    padding-top: 20px;
-  }
+  background: rgba(0,0,0,0.6);
+  min-height: 100vh;
+  padding-top: 20px;
+  padding-bottom: 20px;
+}
 }
 </style>
 
@@ -111,8 +114,8 @@ border-radius:10px;
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
-import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-database.js";
-
+import { getDatabase, ref, set, onValue, onDisconnect, remove } from
+"https://www.gstatic.com/firebasejs/12.10.0/firebase-database.js";
 const firebaseConfig = {
   apiKey: "AIzaSyDBrKBLYtEKUQixjNNDtvyD7CoxmjxD8P0",
   authDomain: "fasokocom.firebaseapp.com",
@@ -128,11 +131,25 @@ const db = getDatabase(app);
 // ID unique de l'utilisateur
 let userId = "agent_" + Math.floor(Math.random() * 100000);
 
+let userRef = ref(db, "users/" + userId);
+onDisconnect(userRef).remove();
+
 // Carte Leaflet
 let map = L.map('map').setView([12.6392, -8.0029], 13);
 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+let normal = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   maxZoom: 19
+});
+
+let satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+  maxZoom: 19
+});
+
+normal.addTo(map);
+
+L.control.layers({
+  "Normal": normal,
+  "Satellite": satellite
 }).addTo(map);
 
 // Marqueurs des agents
@@ -157,6 +174,7 @@ window.showPosition = function(){
     "Latitude : "+lat+"<br>Longitude : "+lon;
 
     map.setView([lat, lon], 15);
+
   });
 }
 
