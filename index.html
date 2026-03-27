@@ -151,7 +151,6 @@ L.control.layers({
   "Normal": normal,
   "Satellite": satellite
 }).addTo(map);
-
 // Marqueurs des agents
 let markers = {};
 
@@ -188,16 +187,31 @@ navigator.geolocation.watchPosition((pos) => {
 
   let lat = pos.coords.latitude;
   let lon = pos.coords.longitude;
+  let accuracy = pos.coords.accuracy;
 
   document.getElementById("position").innerHTML =
-  "Latitude : "+lat+"<br>Longitude : "+lon;
+  "Latitude : "+lat+
+  "<br>Longitude : "+lon+
+  "<br>Précision : "+Math.round(accuracy)+" m";
 
-  // envoyer position à Firebase
+  // si GPS trop mauvais, ne pas envoyer
+  if(accuracy > 200) return;
+
   set(ref(db, "users/" + userId), {
     latitude: lat,
-    longitude: lon
+    longitude: lon,
+    accuracy: accuracy,
+    timestamp: Date.now()
   });
 
+}, (err) => {
+
+  alert("Erreur GPS : " + err.message);
+
+}, {
+  enableHighAccuracy: true,
+  timeout: 10000,
+  maximumAge: 0
 });
 
 // Lire les positions de tous les agents en temps réel
