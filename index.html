@@ -137,22 +137,33 @@ onDisconnect(userRef).remove();
 // Carte Leaflet
 let map = L.map('map').setView([12.6392, -8.0029], 13);
 
-let normal = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+let normal = L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
   maxZoom: 19
 });
 
-let satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-  maxZoom: 19
-});
+let satellite = L.tileLayer(
+  'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+  { maxZoom: 19 }
+);
 
+// Labels (noms des lieux) sur satellite
+let labels = L.tileLayer(
+  'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
+  { maxZoom: 19 }
+);
+
+// Satellite + labels
+let satelliteWithLabels = L.layerGroup([satellite, labels]);
+
+// afficher normal au début
 normal.addTo(map);
 
+// bouton de choix Normal / Satellite
 L.control.layers({
   "Normal": normal,
-  "Satellite": satellite
+  "Satellite + Noms": satelliteWithLabels
 }).addTo(map);
-// Marqueurs des agents
-let markers = {};
+
 
 // Fonction talk
 window.talk = function(){
@@ -195,7 +206,7 @@ navigator.geolocation.watchPosition((pos) => {
   "<br>Précision : "+Math.round(accuracy)+" m";
 
   // si GPS trop mauvais, ne pas envoyer
-  if(accuracy > 200) return;
+  if(accuracy > 20) return;
 
   set(ref(db, "users/" + userId), {
     latitude: lat,
@@ -213,7 +224,8 @@ navigator.geolocation.watchPosition((pos) => {
   timeout: 10000,
   maximumAge: 0
 });
-
+// Marqueurs des agents
+let markers = {};
 // Lire les positions de tous les agents en temps réel
 onValue(ref(db, "users"), (snapshot) => {
 
