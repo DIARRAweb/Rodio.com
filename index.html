@@ -107,7 +107,9 @@ border-radius:10px;
 <button id="logoutBtn" onclick="logout()" style="display:none;">Déconnexion</button>
 
 <div id="mainApp" style="display:none;">
-  <button onclick="talk()">🎙 PARLER</button>
+  <button onmousedown="startRecording()" onmouseup="stopRecording()">
+🎙 PARLER (Maintenir)
+</button>
   <button onclick="showPosition()">📍 MA POSITION</button>
   <button onclick="showMap()">🗺 CARTE DE L'ÉQUIPE</button>
   <p id="position"></p>
@@ -195,6 +197,58 @@ window.showPosition = function(){
   });
 }
 
+let mediaRecorder;
+let audioChunks = [];
+
+window.startRecording = async function(){
+  try{
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaRecorder = new MediaRecorder(stream);
+    audioChunks = [];
+
+    mediaRecorder.ondataavailable = (event) => {
+      audioChunks.push(event.data);
+    };
+
+    mediaRecorder.start();
+    document.getElementById("position").innerHTML = "🎙 Enregistrement...";
+  }catch(err){
+    alert("Micro refusé : " + err.message);
+  }
+}
+
+window.stopRecording = function(){
+  if(!mediaRecorder) return;
+
+  mediaRecorder.stop();
+
+  mediaRecorder.onstop = async () => {
+
+    const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
+    const audioUrl = URL.createObjectURL(audioBlob);
+
+    // lecture automatique pour test
+    let audio = new Audio(audioUrl);
+    audio.play();
+
+    document.getElementById("position").innerHTML = "✅ Vocal prêt";
+
+    // envoyer dans Firebase Realtime Database (base64 simple)
+    const reader = new FileReader();
+    reader.readAsDataURL(audioBlob);
+
+    reader.onloadend = function(){
+      const base64Audio = reader.result;
+
+      set(ref(db, "voiceMessages/" + Date.now()), {
+        sender: fullName,
+        audio: base64Audio,
+        timestamp: Date.now()
+      });
+    };
+  };
+}
+
 // Carte activée
 window.showMap = function(){
   alert("Carte activée");
@@ -260,6 +314,19 @@ markers[id] = L.marker([user.latitude, user.longitude])
   .bindPopup("<b>" + displayName + "</b><br>Précision: " + Math.round(user.accuracy || 0) + " m");
     }
   });
+
+onValue(ref(db, "voiceMessages"), (snapshot) => {
+  const messages = snapshot.val();
+  if(!messages) return;
+
+  let lastKey = Object.keys(messages).pop();
+  let msg = messages[lastKey];
+
+  if(msg && msg.audio){
+    let audio = new Audio(msg.audio);
+    audio.play();
+  }
+});
 
 }
 
