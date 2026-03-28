@@ -127,7 +127,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/fireba
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut }
 from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
 
-import { getDatabase, ref, set, onValue, onDisconnect, remove }
+import { getDatabase, ref, set, onValue, onChildAdded, onDisconnect, remove }
 from "https://www.gstatic.com/firebasejs/12.10.0/firebase-database.js";
 const firebaseConfig = {
   apiKey: "AIzaSyDBrKBLYtEKUQixjNNDtvyD7CoxmjxD8P0",
@@ -220,20 +220,16 @@ window.startRecording = async function(){
 window.stopRecording = function(){
   if(!mediaRecorder) return;
 
+  if(mediaRecorder.state !== "recording") return;
+
   mediaRecorder.stop();
 
   mediaRecorder.onstop = async () => {
 
     const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
-    const audioUrl = URL.createObjectURL(audioBlob);
 
-    // lecture automatique pour test
-    let audio = new Audio(audioUrl);
-    audio.play();
+    document.getElementById("position").innerHTML = "✅ Vocal envoyé";
 
-    document.getElementById("position").innerHTML = "✅ Vocal prêt";
-
-    // envoyer dans Firebase Realtime Database (base64 simple)
     const reader = new FileReader();
     reader.readAsDataURL(audioBlob);
 
@@ -242,6 +238,7 @@ window.stopRecording = function(){
 
       set(ref(db, "voiceMessages/" + Date.now()), {
         sender: fullName,
+        senderId: userId,
         audio: base64Audio,
         timestamp: Date.now()
       });
@@ -315,14 +312,14 @@ markers[id] = L.marker([user.latitude, user.longitude])
     }
   });
 
-onValue(ref(db, "voiceMessages"), (snapshot) => {
-  const messages = snapshot.val();
-  if(!messages) return;
+onChildAdded(ref(db, "voiceMessages"), (snapshot) => {
+  const msg = snapshot.val();
+  if(!msg) return;
 
-  let lastKey = Object.keys(messages).pop();
-  let msg = messages[lastKey];
+  // ne pas écouter son propre vocal
+  if(msg.senderId === userId) return;
 
-  if(msg && msg.audio){
+  if(msg.audio){
     let audio = new Audio(msg.audio);
     audio.play();
   }
