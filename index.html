@@ -221,11 +221,12 @@ navigator.geolocation.watchPosition((pos) => {
   if(accuracy > 20) return;
   if(!userId) return;
   set(ref(db, "users/" + userId), {
-    latitude: lat,
-    longitude: lon,
-    accuracy: accuracy,
-    timestamp: Date.now()
-  });
+  name: fullName,
+  latitude: lat,
+  longitude: lon,
+  accuracy: accuracy,
+  timestamp: Date.now()
+});
 
 }, (err) => {
 
@@ -254,8 +255,8 @@ onValue(ref(db, "users"), (snapshot) => {
     }
 
     markers[id] = L.marker([user.latitude, user.longitude])
-      .addTo(map)
-      .bindPopup(id);
+.addTo(map)
+.bindPopup("<b>" + user.name + "</b><br>Précision: " + Math.round(user.accuracy) + " m");
   }
 
 });
@@ -278,6 +279,8 @@ window.logout = function(){
 }
 onAuthStateChanged(auth, (user) => {
   if(user){
+    let fullName = prompt("Entrez votre Nom + Grade (ex: Capitaine Idrissa DIARRA)");
+    if(!fullName) fullName = "Agent inconnu";
 
     userId = user.uid;
     userRef = ref(db, "users/" + userId);
