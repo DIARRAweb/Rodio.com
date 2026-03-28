@@ -140,11 +140,10 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
 
-// ID unique de l'utilisateur
-let userId = "agent_" + Math.floor(Math.random() * 100000);
 
-let userRef = ref(db, "users/" + userId);
-onDisconnect(userRef).remove();
+// ID unique de l'utilisateur
+let userId = null;
+let userRef = null;
 
 // Carte Leaflet
 let map = L.map('map').setView([12.6392, -8.0029], 13);
@@ -220,7 +219,7 @@ navigator.geolocation.watchPosition((pos) => {
 
   // si GPS trop mauvais, ne pas envoyer
   if(accuracy > 20) return;
-
+  if(!userId) return;
   set(ref(db, "users/" + userId), {
     latitude: lat,
     longitude: lon,
@@ -279,9 +278,15 @@ window.logout = function(){
 }
 onAuthStateChanged(auth, (user) => {
   if(user){
+
+    userId = user.uid;
+    userRef = ref(db, "users/" + userId);
+    onDisconnect(userRef).remove();
+
     document.getElementById("loginBox").style.display = "none";
     document.getElementById("logoutBtn").style.display = "block";
     document.getElementById("mainApp").style.display = "block";
+
   }else{
     document.getElementById("loginBox").style.display = "block";
     document.getElementById("logoutBtn").style.display = "none";
