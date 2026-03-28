@@ -158,19 +158,15 @@ let satellite = L.tileLayer(
   { maxZoom: 19 }
 );
 
-// Labels (noms des lieux) sur satellite
 let labels = L.tileLayer(
   'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
   { maxZoom: 19 }
 );
 
-// Satellite + labels
 let satelliteWithLabels = L.layerGroup([satellite, labels]);
 
-// afficher normal au début
 normal.addTo(map);
 
-// bouton de choix Normal / Satellite
 L.control.layers({
   "Normal": normal,
   "Satellite + Noms": satelliteWithLabels
@@ -259,9 +255,9 @@ function startTracking(){
 
       let displayName = user.name || "Agent";
 
-      markers[id] = L.marker([user.latitude, user.longitude])
-      .addTo(map)
-      .bindPopup("<b>" + displayName + "</b><br>Précision: " + Math.round(user.accuracy || 0) + " m");
+markers[id] = L.marker([user.latitude, user.longitude])
+  .addTo(map)
+  .bindPopup("<b>" + displayName + "</b><br>Précision: " + Math.round(user.accuracy || 0) + " m");
     }
   });
 
@@ -284,7 +280,7 @@ window.logout = function(){
   signOut(auth);
 }
 onAuthStateChanged(auth, (user) => {
-  startTracking();
+  
   if(user){
 
   fullName = prompt("Entrez votre Nom + Grade (ex: Capitaine Idrissa DIARRA)") || "Agent inconnu";
