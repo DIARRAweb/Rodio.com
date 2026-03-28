@@ -97,15 +97,22 @@ border-radius:10px;
 
 <p>Communication tactique militaire</p>
 
-<button onclick="talk()">🎙 PARLER</button>
+<div id="loginBox">
+  <h2>Connexion FASOKOCOM</h2>
+  <input type="email" id="email" placeholder="Email">
+  <input type="password" id="password" placeholder="Mot de passe">
+  <button onclick="login()">Se connecter</button>
+</div>
 
-<button onclick="showPosition()">📍 MA POSITION</button>
+<button id="logoutBtn" onclick="logout()" style="display:none;">Déconnexion</button>
 
-<button onclick="showMap()">🗺 CARTE DE L'ÉQUIPE</button>
-
-<p id="position"></p>
-
-<div id="map"></div>
+<div id="mainApp" style="display:none;">
+  <button onclick="talk()">🎙 PARLER</button>
+  <button onclick="showPosition()">📍 MA POSITION</button>
+  <button onclick="showMap()">🗺 CARTE DE L'ÉQUIPE</button>
+  <p id="position"></p>
+  <div id="map"></div>
+</div>
 
 </div>
 
@@ -114,8 +121,12 @@ border-radius:10px;
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
-import { getDatabase, ref, set, onValue, onDisconnect, remove } from
-"https://www.gstatic.com/firebasejs/12.10.0/firebase-database.js";
+
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut }
+from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
+
+import { getDatabase, ref, set, onValue, onDisconnect, remove }
+from "https://www.gstatic.com/firebasejs/12.10.0/firebase-database.js";
 const firebaseConfig = {
   apiKey: "AIzaSyDBrKBLYtEKUQixjNNDtvyD7CoxmjxD8P0",
   authDomain: "fasokocom.firebaseapp.com",
@@ -126,6 +137,7 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
 const db = getDatabase(app);
 
 // ID unique de l'utilisateur
@@ -172,6 +184,7 @@ window.talk = function(){
     alert("Microphone activé");
   });
 }
+
 
 // Afficher position
 window.showPosition = function(){
@@ -247,6 +260,35 @@ onValue(ref(db, "users"), (snapshot) => {
   }
 
 });
+
+window.login = function(){
+  let email = document.getElementById("email").value;
+  let password = document.getElementById("password").value;
+
+  signInWithEmailAndPassword(auth, email, password)
+  .then(() => {
+    alert("Connexion réussie");
+  })
+  .catch((error) => {
+    alert("Erreur : " + error.message);
+  });
+}
+
+window.logout = function(){
+  signOut(auth);
+}
+onAuthStateChanged(auth, (user) => {
+  if(user){
+    document.getElementById("loginBox").style.display = "none";
+    document.getElementById("logoutBtn").style.display = "block";
+    document.getElementById("mainApp").style.display = "block";
+  }else{
+    document.getElementById("loginBox").style.display = "block";
+    document.getElementById("logoutBtn").style.display = "none";
+    document.getElementById("mainApp").style.display = "none";
+  }
+});
+
 
 </script>
 
