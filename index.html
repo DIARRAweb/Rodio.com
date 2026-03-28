@@ -144,6 +144,7 @@ const db = getDatabase(app);
 // ID unique de l'utilisateur
 let userId = null;
 let userRef = null;
+let fullName = "Agent inconnu";
 
 // Carte Leaflet
 let map = L.map('map').setView([12.6392, -8.0029], 13);
@@ -254,9 +255,11 @@ onValue(ref(db, "users"), (snapshot) => {
       map.removeLayer(markers[id]);
     }
 
-    markers[id] = L.marker([user.latitude, user.longitude])
+    let displayName = user.name || "Agent";
+
+markers[id] = L.marker([user.latitude, user.longitude])
 .addTo(map)
-.bindPopup("<b>" + user.name + "</b><br>Précision: " + Math.round(user.accuracy) + " m");
+.bindPopup("<b>" + displayName + "</b><br>Précision: " + Math.round(user.accuracy || 0) + " m");
   }
 
 });
@@ -279,9 +282,7 @@ window.logout = function(){
 }
 onAuthStateChanged(auth, (user) => {
   if(user){
-    let fullName = prompt("Entrez votre Nom + Grade (ex: Capitaine Idrissa DIARRA)");
-    if(!fullName) fullName = "Agent inconnu";
-
+    fullName = prompt("Entrez votre Nom + Grade (ex: Capitaine Idrissa DIARRA)") || "Agent inconnu";
     userId = user.uid;
     userRef = ref(db, "users/" + userId);
     onDisconnect(userRef).remove();
