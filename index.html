@@ -140,11 +140,11 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
 
-
 // ID unique de l'utilisateur
 let userId = null;
 let userRef = null;
 let fullName = "Agent inconnu";
+let trackingStarted = false;
 
 // Carte Leaflet
 let map = L.map('map').setView([12.6392, -8.0029], 13);
@@ -176,7 +176,6 @@ L.control.layers({
   "Satellite + Noms": satelliteWithLabels
 }).addTo(map);
 
-
 // Fonction talk
 window.talk = function(){
   navigator.mediaDevices.getUserMedia({audio:true})
@@ -184,7 +183,6 @@ window.talk = function(){
     alert("Microphone activé");
   });
 }
-
 
 // Afficher position
 window.showPosition = function(){
@@ -206,63 +204,68 @@ window.showMap = function(){
   alert("Carte activée");
 }
 
-// Tracking automatique + envoi Firebase
-navigator.geolocation.watchPosition((pos) => {
-
-  let lat = pos.coords.latitude;
-  let lon = pos.coords.longitude;
-  let accuracy = pos.coords.accuracy;
-
-  document.getElementById("position").innerHTML =
-  "Latitude : "+lat+
-  "<br>Longitude : "+lon+
-  "<br>Précision : "+Math.round(accuracy)+" m";
-
-  // si GPS trop mauvais, ne pas envoyer
-  if(accuracy > 20) return;
-  if(!userId) return;
-  set(ref(db, "users/" + userId), {
-  name: fullName,
-  latitude: lat,
-  longitude: lon,
-  accuracy: accuracy,
-  timestamp: Date.now()
-});
-
-}, (err) => {
-
-  alert("Erreur GPS : " + err.message);
-
-}, {
-  enableHighAccuracy: true,
-  timeout: 10000,
-  maximumAge: 0
-});
 // Marqueurs des agents
 let markers = {};
-// Lire les positions de tous les agents en temps réel
-onValue(ref(db, "users"), (snapshot) => {
 
-  const data = snapshot.val();
+function startTracking(){
 
-  if(!data) return;
+  if(trackingStarted) return;
+  trackingStarted = true;
 
-  for (let id in data) {
+  // Tracking automatique + envoi Firebase
+  navigator.geolocation.watchPosition((pos) => {
 
-    let user = data[id];
+    let lat = pos.coords.latitude;
+    let lon = pos.coords.longitude;
+    let accuracy = pos.coords.accuracy;
 
-    if(markers[id]){
-      map.removeLayer(markers[id]);
+    document.getElementById("position").innerHTML =
+    "Latitude : "+lat+
+    "<br>Longitude : "+lon+
+    "<br>Précision : "+Math.round(accuracy)+" m";
+
+    if(accuracy > 20) return;
+    if(!userId) return;
+
+    set(ref(db, "users/" + userId), {
+      name: fullName,
+      latitude: lat,
+      longitude: lon,
+      accuracy: accuracy,
+      timestamp: Date.now()
+    });
+
+  }, (err) => {
+    alert("Erreur GPS : " + err.message);
+  }, {
+    enableHighAccuracy: true,
+    timeout: 10000,
+    maximumAge: 0
+  });
+
+  // Lire les positions de tous les agents en temps réel
+  onValue(ref(db, "users"), (snapshot) => {
+
+    const data = snapshot.val();
+    if(!data) return;
+
+    for (let id in data) {
+
+      let user = data[id];
+
+      if(markers[id]){
+        map.removeLayer(markers[id]);
+      }
+
+      let displayName = user.name || "Agent";
+
+      markers[id] = L.marker([user.latitude, user.longitude])
+      .addTo(map)
+      .bindPopup("<b>" + displayName + "</b><br>Précision: " + Math.round(user.accuracy || 0) + " m");
     }
+  });
 
-    let displayName = user.name || "Agent";
-
-markers[id] = L.marker([user.latitude, user.longitude])
-.addTo(map)
-.bindPopup("<b>" + displayName + "</b><br>Précision: " + Math.round(user.accuracy || 0) + " m");
-  }
-
-});
+}
 
 window.login = function(){
   let email = document.getElementById("email").value;
@@ -281,25 +284,31 @@ window.logout = function(){
   signOut(auth);
 }
 onAuthStateChanged(auth, (user) => {
+  startTracking();
   if(user){
-    fullName = prompt("Entrez votre Nom + Grade (ex: Capitaine Idrissa DIARRA)") || "Agent inconnu";
-    userId = user.uid;
-    userRef = ref(db, "users/" + userId);
-    onDisconnect(userRef).remove();
 
-    document.getElementById("loginBox").style.display = "none";
-    document.getElementById("logoutBtn").style.display = "block";
-    document.getElementById("mainApp").style.display = "block";
+  fullName = prompt("Entrez votre Nom + Grade (ex: Capitaine Idrissa DIARRA)") || "Agent inconnu";
 
-  }else{
+  userId = user.uid;
+  userRef = ref(db, "users/" + userId);
+  onDisconnect(userRef).remove();
+
+  document.getElementById("loginBox").style.display = "none";
+  document.getElementById("logoutBtn").style.display = "block";
+  document.getElementById("mainApp").style.display = "block";
+
+  startTracking();
+
+}else{
     document.getElementById("loginBox").style.display = "block";
     document.getElementById("logoutBtn").style.display = "none";
     document.getElementById("mainApp").style.display = "none";
   }
 });
 
-
 </script>
+
+
 
 </body>
 
