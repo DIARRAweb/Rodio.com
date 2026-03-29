@@ -107,6 +107,7 @@ border-radius:10px;
 <button id="logoutBtn" onclick="logout()" style="display:none;">Déconnexion</button>
 
 <div id="mainApp" style="display:none;">
+  <button onclick="unlockAudio()">🔊 ACTIVER AUDIO</button>
   <button onclick="toggleRecording()">🎙 PARLER</button>
   <button onclick="showPosition()">📍 MA POSITION</button>
   <button onclick="showMap()">🗺 CARTE DE L'ÉQUIPE</button>
@@ -145,6 +146,17 @@ let userId = null;
 let userRef = null;
 let fullName = "Agent inconnu";
 let trackingStarted = false;
+
+let audioUnlocked = false;
+
+window.unlockAudio = function(){
+  audioUnlocked = true;
+
+  let testAudio = new Audio();
+  testAudio.play().catch(()=>{});
+
+  alert("Audio activé. Vous recevrez maintenant les messages.");
+}
 
 // Carte Leaflet
 let map = L.map('map').setView([12.6392, -8.0029], 13);
@@ -250,10 +262,6 @@ window.showPosition = function(){
   });
 }
 
-
-
-
-
 // Carte activée
 window.showMap = function(){
   alert("Carte activée");
@@ -321,6 +329,9 @@ markers[id] = L.marker([user.latitude, user.longitude])
   });
 
 onChildAdded(ref(db, "voiceMessages"), (snapshot) => {
+
+  if(!audioUnlocked) return;
+
   const msg = snapshot.val();
   if(!msg) return;
 
@@ -329,8 +340,9 @@ onChildAdded(ref(db, "voiceMessages"), (snapshot) => {
 
   if(msg.audio){
     let audio = new Audio(msg.audio);
-    audio.play();
+    audio.play().catch(err => console.log("Audio bloqué:", err));
   }
+
 });
 
 }
