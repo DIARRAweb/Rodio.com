@@ -107,9 +107,7 @@ border-radius:10px;
 <button id="logoutBtn" onclick="logout()" style="display:none;">Déconnexion</button>
 
 <div id="mainApp" style="display:none;">
-  <button onmousedown="startRecording()" onmouseup="stopRecording()">
-🎙 PARLER (Maintenir)
-</button>
+  <button onclick="toggleRecording()">🎙 PARLER</button>
   <button onclick="showPosition()">📍 MA POSITION</button>
   <button onclick="showMap()">🗺 CARTE DE L'ÉQUIPE</button>
   <p id="position"></p>
@@ -174,12 +172,67 @@ L.control.layers({
   "Satellite + Noms": satelliteWithLabels
 }).addTo(map);
 
-// Fonction talk
-window.talk = function(){
-  navigator.mediaDevices.getUserMedia({audio:true})
-  .then(() => {
-    alert("Microphone activé");
-  });
+let mediaRecorder = null;
+let audioChunks = [];
+let isRecording = false;
+
+window.toggleRecording = async function(){
+
+  // démarrer l'enregistrement
+  if(!isRecording){
+
+    try{
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+      mediaRecorder = new MediaRecorder(stream);
+      audioChunks = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        audioChunks.push(event.data);
+      };
+
+      mediaRecorder.onstop = async () => {
+
+        const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
+
+        document.getElementById("position").innerHTML = "📤 Envoi du message...";
+
+        const reader = new FileReader();
+        reader.readAsDataURL(audioBlob);
+
+        reader.onloadend = function(){
+          const base64Audio = reader.result;
+
+          set(ref(db, "voiceMessages/" + Date.now()), {
+            sender: fullName,
+            senderId: userId,
+            audio: base64Audio,
+            timestamp: Date.now()
+          });
+
+          document.getElementById("position").innerHTML = "✅ Message envoyé";
+        };
+      };
+
+      mediaRecorder.start();
+      isRecording = true;
+
+      document.getElementById("position").innerHTML =
+      "🎙 Enregistrement... (Clique encore pour envoyer)";
+
+    }catch(err){
+      alert("Micro refusé : " + err.message);
+    }
+
+  }else{
+
+    // arrêter + envoyer
+    if(mediaRecorder && mediaRecorder.state === "recording"){
+      mediaRecorder.stop();
+    }
+
+    isRecording = false;
+  }
 }
 
 // Afficher position
@@ -197,54 +250,9 @@ window.showPosition = function(){
   });
 }
 
-let mediaRecorder;
-let audioChunks = [];
 
-window.startRecording = async function(){
-  try{
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    mediaRecorder = new MediaRecorder(stream);
-    audioChunks = [];
 
-    mediaRecorder.ondataavailable = (event) => {
-      audioChunks.push(event.data);
-    };
 
-    mediaRecorder.start();
-    document.getElementById("position").innerHTML = "🎙 Enregistrement...";
-  }catch(err){
-    alert("Micro refusé : " + err.message);
-  }
-}
-
-window.stopRecording = function(){
-  if(!mediaRecorder) return;
-
-  if(mediaRecorder.state !== "recording") return;
-
-  mediaRecorder.stop();
-
-  mediaRecorder.onstop = async () => {
-
-    const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
-
-    document.getElementById("position").innerHTML = "✅ Vocal envoyé";
-
-    const reader = new FileReader();
-    reader.readAsDataURL(audioBlob);
-
-    reader.onloadend = function(){
-      const base64Audio = reader.result;
-
-      set(ref(db, "voiceMessages/" + Date.now()), {
-        sender: fullName,
-        senderId: userId,
-        audio: base64Audio,
-        timestamp: Date.now()
-      });
-    };
-  };
-}
 
 // Carte activée
 window.showMap = function(){
