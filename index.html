@@ -3,6 +3,7 @@
 
 <head>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.fullscreen/Control.FullScreen.css"/>
     <title>FASOKOCOM</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
@@ -116,6 +117,7 @@ border-radius:10px;
 </div>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.fullscreen/Control.FullScreen.js"></script>
 
 <script type="module">
 
@@ -124,7 +126,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/fireba
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut }
 from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
 
-import { getDatabase, ref, set, onValue, onChildAdded, onDisconnect, remove }
+import { getDatabase, ref, set, onValue, onDisconnect }
 from "https://www.gstatic.com/firebasejs/12.10.0/firebase-database.js";
 const firebaseConfig = {
   apiKey: "AIzaSyDBrKBLYtEKUQixjNNDtvyD7CoxmjxD8P0",
@@ -170,6 +172,7 @@ L.control.layers({
   "Normal": normal,
   "Satellite + Noms": satelliteWithLabels
 }).addTo(map);
+map.addControl(new L.Control.Fullscreen());
 
 // Afficher position
 window.showPosition = function(){
