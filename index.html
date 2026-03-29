@@ -111,7 +111,6 @@ border-radius:10px;
   <button onclick="toggleRecording()">🎙 PARLER</button>
   <button onclick="showPosition()">📍 MA POSITION</button>
   <button onclick="showMap()">🗺 CARTE DE L'ÉQUIPE</button>
-  <button onclick="loadNearbyPlaces()">🏥 LIEUX AUTOUR</button>
   <p id="position"></p>
   <div id="map"></div>
 </div>
@@ -271,54 +270,6 @@ window.showMap = function(){
 // Marqueurs des agents
 let markers = {};
 
-let placesLayer = L.layerGroup().addTo(map);
-
-window.loadNearbyPlaces = function () {
-  navigator.geolocation.getCurrentPosition(async function(pos){
-    let lat = pos.coords.latitude;
-    let lon = pos.coords.longitude;
-
-    placesLayer.clearLayers();
-
-    let query = `
-      [out:json];
-      (
-        node["amenity"="hospital"](around:2000,${lat},${lon});
-        node["amenity"="pharmacy"](around:2000,${lat},${lon});
-        node["amenity"="restaurant"](around:2000,${lat},${lon});
-        node["amenity"="fuel"](around:2000,${lat},${lon});
-        node["amenity"="police"](around:2000,${lat},${lon});
-        node["amenity"="school"](around:2000,${lat},${lon});
-      );
-      out;
-    `;
-
-    let url = "https://overpass-api.de/api/interpreter?data=" + encodeURIComponent(query);
-
-    document.getElementById("position").innerHTML = "🔍 Recherche des lieux...";
-
-    try{
-      let response = await fetch(url);
-      let data = await response.json();
-
-      data.elements.forEach(place => {
-        if(place.lat && place.lon){
-          let name = (place.tags && place.tags.name) ? place.tags.name : "Lieu";
-
-          L.marker([place.lat, place.lon])
-            .addTo(placesLayer)
-            .bindPopup("📍 " + name);
-        }
-      });
-
-      document.getElementById("position").innerHTML =
-        "✅ Lieux chargés : " + data.elements.length;
-
-    }catch(err){
-      alert("Erreur Overpass : " + err.message);
-    }
-  });
-};
 function startTracking(){
 
   if(trackingStarted) return;
@@ -442,4 +393,3 @@ onAuthStateChanged(auth, (user) => {
 </body>
 
 </html>
-
