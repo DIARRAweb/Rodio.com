@@ -3,6 +3,7 @@
 
 <head>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.fullscreen/Control.FullScreen.css"/>
     <title>FASOKOCOM</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
@@ -107,8 +108,6 @@ border-radius:10px;
 <button id="logoutBtn" onclick="logout()" style="display:none;">Déconnexion</button>
 
 <div id="mainApp" style="display:none;">
-  <button onclick="unlockAudio()">🔊 ACTIVER AUDIO</button>
-  <button onclick="toggleRecording()">🎙 PARLER</button>
   <button onclick="showPosition()">📍 MA POSITION</button>
   <button onclick="showMap()">🗺 CARTE DE L'ÉQUIPE</button>
   <p id="position"></p>
@@ -118,6 +117,7 @@ border-radius:10px;
 </div>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.fullscreen/Control.FullScreen.js"></script>
 
 <script type="module">
 
@@ -126,7 +126,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/fireba
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut }
 from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
 
-import { getDatabase, ref, set, onValue, onChildAdded, onDisconnect, remove }
+import { getDatabase, ref, set, onValue, onDisconnect }
 from "https://www.gstatic.com/firebasejs/12.10.0/firebase-database.js";
 const firebaseConfig = {
   apiKey: "AIzaSyDBrKBLYtEKUQixjNNDtvyD7CoxmjxD8P0",
@@ -146,17 +146,6 @@ let userId = null;
 let userRef = null;
 let fullName = "Agent inconnu";
 let trackingStarted = false;
-
-let audioUnlocked = false;
-
-window.unlockAudio = function(){
-  audioUnlocked = true;
-
-  let testAudio = new Audio();
-  testAudio.play().catch(()=>{});
-
-  alert("Audio activé. Vous recevrez maintenant les messages.");
-}
 
 // Carte Leaflet
 let map = L.map('map').setView([12.6392, -8.0029], 13);
@@ -183,69 +172,7 @@ L.control.layers({
   "Normal": normal,
   "Satellite + Noms": satelliteWithLabels
 }).addTo(map);
-
-let mediaRecorder = null;
-let audioChunks = [];
-let isRecording = false;
-
-window.toggleRecording = async function(){
-
-  // démarrer l'enregistrement
-  if(!isRecording){
-
-    try{
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
-      mediaRecorder = new MediaRecorder(stream);
-      audioChunks = [];
-
-      mediaRecorder.ondataavailable = (event) => {
-        audioChunks.push(event.data);
-      };
-
-      mediaRecorder.onstop = async () => {
-
-        const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
-
-        document.getElementById("position").innerHTML = "📤 Envoi du message...";
-
-        const reader = new FileReader();
-        reader.readAsDataURL(audioBlob);
-
-        reader.onloadend = function(){
-          const base64Audio = reader.result;
-
-          set(ref(db, "voiceMessages/" + Date.now()), {
-            sender: fullName,
-            senderId: userId,
-            audio: base64Audio,
-            timestamp: Date.now()
-          });
-
-          document.getElementById("position").innerHTML = "✅ Message envoyé";
-        };
-      };
-
-      mediaRecorder.start();
-      isRecording = true;
-
-      document.getElementById("position").innerHTML =
-      "🎙 Enregistrement... (Clique encore pour envoyer)";
-
-    }catch(err){
-      alert("Micro refusé : " + err.message);
-    }
-
-  }else{
-
-    // arrêter + envoyer
-    if(mediaRecorder && mediaRecorder.state === "recording"){
-      mediaRecorder.stop();
-    }
-
-    isRecording = false;
-  }
-}
+map.addControl(new L.Control.Fullscreen());
 
 // Afficher position
 window.showPosition = function(){
@@ -328,23 +255,6 @@ markers[id] = L.marker([user.latitude, user.longitude])
     }
   });
 
-onChildAdded(ref(db, "voiceMessages"), (snapshot) => {
-
-  if(!audioUnlocked) return;
-
-  const msg = snapshot.val();
-  if(!msg) return;
-
-  // ne pas écouter son propre vocal
-  if(msg.senderId === userId) return;
-
-  if(msg.audio){
-    let audio = new Audio(msg.audio);
-    audio.play().catch(err => console.log("Audio bloqué:", err));
-  }
-
-});
-
 }
 
 window.login = function(){
@@ -387,8 +297,6 @@ onAuthStateChanged(auth, (user) => {
 });
 
 </script>
-
-
 
 </body>
 
