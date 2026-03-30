@@ -98,16 +98,7 @@ border-radius:10px;
 
 <p>Communication tactique militaire</p>
 
-<div id="loginBox">
-  <h2>Connexion FASOKOCOM</h2>
-  <input type="email" id="email" placeholder="Email">
-  <input type="password" id="password" placeholder="Mot de passe">
-  <button onclick="login()">Se connecter</button>
-</div>
-
-<button id="logoutBtn" onclick="logout()" style="display:none;">Déconnexion</button>
-
-<div id="mainApp" style="display:none;">
+<div id="mainApp">
   <button onclick="showPosition()">📍 MA POSITION</button>
   <button onclick="showMap()">🗺 CARTE DE L'ÉQUIPE</button>
   <p id="position"></p>
@@ -123,9 +114,6 @@ border-radius:10px;
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
 
-import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut }
-from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
-
 import { getDatabase, ref, set, onValue, onDisconnect }
 from "https://www.gstatic.com/firebasejs/12.10.0/firebase-database.js";
 const firebaseConfig = {
@@ -138,14 +126,15 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
 const db = getDatabase(app);
 
 // ID unique de l'utilisateur
-let userId = null;
-let userRef = null;
-let fullName = "Agent inconnu";
 let trackingStarted = false;
+let userId = "agent_" + Math.floor(Math.random() * 100000);
+let fullName = prompt("Entrez votre Nom + Grade") || "Agent inconnu";
+let userRef = ref(db, "users/" + userId);
+
+onDisconnect(userRef).remove();
 
 // Carte Leaflet
 let map = L.map('map').setView([12.6392, -8.0029], 13);
@@ -256,46 +245,7 @@ markers[id] = L.marker([user.latitude, user.longitude])
   });
 
 }
-
-window.login = function(){
-  let email = document.getElementById("email").value;
-  let password = document.getElementById("password").value;
-
-  signInWithEmailAndPassword(auth, email, password)
-  .then(() => {
-    alert("Connexion réussie");
-  })
-  .catch((error) => {
-    alert("Erreur : " + error.message);
-  });
-}
-
-window.logout = function(){
-  signOut(auth);
-}
-onAuthStateChanged(auth, (user) => {
-  
-  if(user){
-
-  fullName = prompt("Entrez votre Nom + Grade (ex: Capitaine Idrissa DIARRA)") || "Agent inconnu";
-
-  userId = user.uid;
-  userRef = ref(db, "users/" + userId);
-  onDisconnect(userRef).remove();
-
-  document.getElementById("loginBox").style.display = "none";
-  document.getElementById("logoutBtn").style.display = "block";
-  document.getElementById("mainApp").style.display = "block";
-
-  startTracking();
-
-}else{
-    document.getElementById("loginBox").style.display = "block";
-    document.getElementById("logoutBtn").style.display = "none";
-    document.getElementById("mainApp").style.display = "none";
-  }
-});
-
+startTracking();
 </script>
 
 </body>
