@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FASOKOCOM</title>
 
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+  <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet"/>
 
   <style>
     body{
@@ -39,12 +39,13 @@
       max-width:400px;
     }
 
-    #map{
-      height:450px;
-      width:95%;
-      margin:auto;
-      border-radius:12px;
-      border:2px solid #00ff9c;
+   #map{
+      height: 500px;
+      width: 95%;
+      margin: auto;
+      border-radius: 12px;
+      border: 2px solid #00ff9c;
+      overflow: hidden;
     }
 
     #position{
@@ -60,131 +61,230 @@
     <p>Carte tactique en temps réel</p>
 
     <button onclick="showPosition()">📍 MA POSITION</button>
-
+    <button onclick="showMap()">🗺 CARTE DE L'ÉQUIPE</button>
+    
     <p id="position">Position non disponible</p>
 
     <div id="map"></div>
   </div>
 
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
-    import { getDatabase, ref, set, onValue, onDisconnect, remove } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-database.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
+import { getDatabase, ref, set, onValue, onDisconnect, remove } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-database.js";
 
-    // Firebase Config (FASOKOCOM2)
-    const firebaseConfig = {
-      apiKey: "AIzaSyA83FA1Ne_qjYoIYHtsOXc7j3h3bdTOgLQ",
-      authDomain: "fasokocom2.firebaseapp.com",
-      projectId: "fasokocom2",
-      storageBucket: "fasokocom2.firebasestorage.app",
-      messagingSenderId: "730331164569",
-      appId: "1:730331164569:web:8e984ad9d88a30bf2c2d08"
+// Firebase Config (FASOKOCOM2)
+const firebaseConfig = {
+  apiKey: "AIzaSyA83FA1Ne_qjYoIYHtsOXc7j3h3bdTOgLQ",
+  authDomain: "fasokocom2.firebaseapp.com",
+  projectId: "fasokocom2",
+  storageBucket: "fasokocom2.firebasestorage.app",
+  messagingSenderId: "730331164569",
+  appId: "1:730331164569:web:8e984ad9d88a30bf2c2d08"
+};
+
+// Init Firebase
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+// Nom agent
+let fullName = prompt("Entrez votre Nom + Grade (ex: Capitaine Idrissa DIARRA)") || "Agent inconnu";
+
+// ID unique
+let userId = "agent_" + Math.floor(Math.random() * 1000000);
+let userRef = ref(db, "users/" + userId);
+
+// Supprimer automatiquement quand l’utilisateur quitte
+onDisconnect(userRef).remove();
+
+// ---------------- STYLES MAP ----------------
+const normalStyle = "https://demotiles.maplibre.org/style.json";
+
+const satelliteStyle = {
+  version: 8,
+  sources: {
+    esri: {
+      type: "raster",
+      tiles: [
+        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+      ],
+      tileSize: 256,
+      attribution: "Esri"
+    }
+  },
+  layers: [
+    {
+      id: "satellite",
+      type: "raster",
+      source: "esri"
+    }
+  ]
+};
+
+const reliefStyle = "https://tiles.stadiamaps.com/styles/outdoors.json";
+
+// ---------------- MAPLIBRE MAP ----------------
+let map = new maplibregl.Map({
+  container: "map",
+  style: normalStyle,
+  center: [-8.0029, 12.6392],
+  zoom: 13
+});
+
+// Zoom + boussole + rotation
+map.addControl(new maplibregl.NavigationControl(), "top-right");
+
+// ---------------- CONTROLE TYPE CARTE (comme Leaflet) ----------------
+class StyleSwitcherControl {
+  onAdd(map) {
+    this.map = map;
+    this.container = document.createElement("div");
+    this.container.className = "maplibregl-ctrl maplibregl-ctrl-group";
+
+    const btn = document.createElement("button");
+    btn.innerHTML = "🗺";
+    btn.title = "Changer la carte";
+
+    btn.onclick = () => {
+      let choix = prompt("Choisir la carte:\n1 = Normal\n2 = Satellite\n3 = Relief");
+      if (choix === "1") map.setStyle(normalStyle);
+      if (choix === "2") map.setStyle(satelliteStyle);
+      if (choix === "3") map.setStyle(reliefStyle);
     };
 
-    // Init Firebase
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
+    this.container.appendChild(btn);
+    return this.container;
+  }
 
-    // Nom agent
-    let fullName = prompt("Entrez votre Nom + Grade (ex: Capitaine Idrissa DIARRA)") || "Agent inconnu";
+  onRemove() {
+    this.container.parentNode.removeChild(this.container);
+    this.map = undefined;
+  }
+}
 
-    // ID unique
-    let userId = "agent_" + Math.floor(Math.random() * 1000000);
-    let userRef = ref(db, "users/" + userId);
+map.addControl(new StyleSwitcherControl(), "top-right");
 
-    // Supprimer automatiquement quand l’utilisateur quitte
-    onDisconnect(userRef).remove();
+// ---------------- MARKERS ----------------
+let markers = {}; // { id: maplibre Marker }
 
-    // Leaflet map
-    let map = L.map("map").setView([12.6392, -8.0029], 13);
+// Fonction mise à jour marker
+function updateMarker(id, lat, lon, popupText) {
+  if (markers[id]) {
+    markers[id].setLngLat([lon, lat]);
+  } else {
+    let popup = new maplibregl.Popup({ offset: 25 }).setHTML(popupText);
 
-    let normal = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 19
+    markers[id] = new maplibregl.Marker()
+      .setLngLat([lon, lat])
+      .setPopup(popup)
+      .addTo(map);
+  }
+}
+
+// ---------------- BOUTON MA POSITION ----------------
+window.showPosition = function () {
+  navigator.geolocation.getCurrentPosition((pos) => {
+    let lat = pos.coords.latitude;
+    let lon = pos.coords.longitude;
+    let accuracy = pos.coords.accuracy;
+
+    document.getElementById("position").innerHTML =
+      "Latitude: " + lat +
+      "<br>Longitude: " + lon +
+      "<br>Précision: " + Math.round(accuracy) + " m";
+
+    map.flyTo({
+      center: [lon, lat],
+      zoom: 16
     });
 
-    normal.addTo(map);
+  }, (err) => {
+    alert("Erreur GPS : " + err.message);
+  }, {
+    enableHighAccuracy: true,
+    timeout: 10000,
+    maximumAge: 0
+  });
+};
 
-    // Marqueurs équipe
-    let markers = {};
+// ---------------- BOUTON CARTE DE L'EQUIPE ----------------
+window.showMap = function () {
+  let bounds = new maplibregl.LngLatBounds();
+  let count = 0;
 
-    // Afficher ma position manuellement
-    window.showPosition = function(){
-      navigator.geolocation.getCurrentPosition((pos)=>{
-        let lat = pos.coords.latitude;
-        let lon = pos.coords.longitude;
-        let accuracy = pos.coords.accuracy;
+  for (let id in markers) {
+    let lngLat = markers[id].getLngLat();
+    bounds.extend(lngLat);
+    count++;
+  }
 
-        document.getElementById("position").innerHTML =
-          "Latitude: " + lat +
-          "<br>Longitude: " + lon +
-          "<br>Précision: " + Math.round(accuracy) + " m";
+  if (count === 0) {
+    alert("Aucun agent trouvé sur la carte.");
+    return;
+  }
 
-        map.setView([lat, lon], 16);
-      }, (err)=>{
-        alert("Erreur GPS : " + err.message);
-      }, {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0
-      });
+  map.fitBounds(bounds, {
+    padding: 50,
+    maxZoom: 16
+  });
+};
+
+// ---------------- TRACKING + ENVOI FIREBASE ----------------
+navigator.geolocation.watchPosition((pos) => {
+  let lat = pos.coords.latitude;
+  let lon = pos.coords.longitude;
+  let accuracy = pos.coords.accuracy;
+
+  if (accuracy > 50) return;
+
+  set(userRef, {
+    name: fullName,
+    latitude: lat,
+    longitude: lon,
+    accuracy: accuracy,
+    timestamp: Date.now()
+  });
+
+}, (err) => {
+  console.log("Erreur GPS :", err.message);
+}, {
+  enableHighAccuracy: true,
+  timeout: 10000,
+  maximumAge: 0
+});
+
+// ---------------- LECTURE POSITIONS EN TEMPS REEL ----------------
+onValue(ref(db, "users"), (snapshot) => {
+  const data = snapshot.val();
+  if (!data) return;
+
+  // Supprimer marqueurs qui n'existent plus
+  for (let id in markers) {
+    if (!data[id]) {
+      markers[id].remove();
+      delete markers[id];
+    }
+  }
+
+  // Ajouter / mettre à jour
+  for (let id in data) {
+    let user = data[id];
+
+    // Supprimer agents fantômes (+2 minutes)
+    if (user.timestamp && (Date.now() - user.timestamp > 120000)) {
+      remove(ref(db, "users/" + id));
+      continue;
     }
 
-    // Tracking automatique + envoi Firebase
-    navigator.geolocation.watchPosition((pos) => {
-      let lat = pos.coords.latitude;
-      let lon = pos.coords.longitude;
-      let accuracy = pos.coords.accuracy;
+    if (!user.latitude || !user.longitude) continue;
 
-      // Si précision trop mauvaise on ignore
-      if(accuracy > 50) return;
+    let displayName = user.name || "Agent";
+    let popupText = "<b>" + displayName + "</b><br>Précision: " + Math.round(user.accuracy || 0) + " m";
 
-      set(userRef, {
-        name: fullName,
-        latitude: lat,
-        longitude: lon,
-        accuracy: accuracy,
-        timestamp: Date.now()
-      });
-
-    }, (err) => {
-      console.log("Erreur GPS :", err.message);
-    }, {
-      enableHighAccuracy: true,
-      timeout: 10000,
-      maximumAge: 0
-    });
-
-    // Lire les positions en temps réel
-    onValue(ref(db, "users"), (snapshot) => {
-      const data = snapshot.val();
-      if(!data) return;
-
-      // supprimer marqueurs anciens non existants
-      for(let id in markers){
-        if(!data[id]){
-          map.removeLayer(markers[id]);
-          delete markers[id];
-        }
-      }
-
-      // ajouter / mettre à jour
-      for (let id in data) {
-        let user = data[id];
-        if(!user.latitude || !user.longitude) continue;
-
-        let displayName = user.name || "Agent";
-
-        if(markers[id]){
-          markers[id].setLatLng([user.latitude, user.longitude]);
-        } else {
-          markers[id] = L.marker([user.latitude, user.longitude])
-            .addTo(map)
-            .bindPopup("<b>" + displayName + "</b><br>Précision: " + Math.round(user.accuracy || 0) + " m");
-        }
-      }
-    });
-
-  </script>
+    updateMarker(id, user.latitude, user.longitude, popupText);
+  }
+});
+</script>
 </body>
 </html>
