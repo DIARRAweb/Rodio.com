@@ -1,253 +1,190 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="fr">
 <head>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.fullscreen/Control.FullScreen.css"/>
-    <title>FASOKOCOM</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FASOKOCOM</title>
 
-<style>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 
-body{
+  <style>
+    body{
+      margin:0;
+      background:#111;
+      font-family: Arial, sans-serif;
+      color:white;
+      text-align:center;
+    }
 
-background-image:url("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSFEpCV2eSOp2zF9SwupRDJ73_o2fvxfeW31w&s");
-background-size:cover;
-background-position:center;
-font-family:Arial;
-color:white;
-text-align:center;
+    .overlay{
+      background:rgba(0,0,0,0.7);
+      min-height:100vh;
+      padding:20px;
+    }
 
-}
+    h1{
+      color:#00ff9c;
+      font-size:32px;
+    }
 
-.overlay{
+    button{
+      padding:15px;
+      font-size:16px;
+      margin:10px;
+      border:none;
+      border-radius:8px;
+      background:#00ff9c;
+      cursor:pointer;
+      width:90%;
+      max-width:400px;
+    }
 
-background:rgba(0,0,0,0.6);
-height:100vh;
-padding-top:40px;
+    #map{
+      height:450px;
+      width:95%;
+      margin:auto;
+      border-radius:12px;
+      border:2px solid #00ff9c;
+    }
 
-}
-
-h1{
-
-font-size:40px;
-color:#00ff9c;
-
-}
-
-button{
-
-padding:15px;
-font-size:18px;
-margin:10px;
-border:none;
-border-radius:8px;
-background:#00ff9c;
-color:black;
-font-weight:bold;
-cursor:pointer;
-
-}
-
-#map{
-height:400px;
-width:90%;
-margin:auto;
-border-radius:10px;
-}
-
-@media (max-width: 768px){
-
-  h1{
-    font-size: 28px;
-  }
-
-  p{
-    font-size: 14px;
-  }
-
-  button{
-    width: 90%;
-    font-size: 16px;
-    padding: 14px;
-    margin: 8px auto;
-    display: block;
-  }
-
-  #map{
-    height: 450px;
-    width: 95%;
-  }
-
-  .overlay{
-  background: rgba(0,0,0,0.6);
-  min-height: 100vh;
-  padding-top: 20px;
-  padding-bottom: 20px;
-}
-}
-</style>
-
+    #position{
+      margin-top:10px;
+      font-size:14px;
+    }
+  </style>
 </head>
 
 <body>
+  <div class="overlay">
+    <h1>🇲🇱 FASOKOCOM</h1>
+    <p>Carte tactique en temps réel</p>
 
-<div class="overlay">
+    <button onclick="showPosition()">📍 MA POSITION</button>
 
-<h1>🇲🇱 FASOKOCOM</h1>
+    <p id="position">Position non disponible</p>
 
-<p>Communication tactique militaire</p>
+    <div id="map"></div>
+  </div>
 
-<div id="mainApp">
-  <button onclick="showPosition()">📍 MA POSITION</button>
-  <button onclick="showMap()">🗺 CARTE DE L'ÉQUIPE</button>
-  <p id="position"></p>
-  <div id="map"></div>
-</div>
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
-</div>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
+    import { getDatabase, ref, set, onValue, onDisconnect, remove } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-database.js";
 
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-<script src="https://unpkg.com/leaflet.fullscreen/Control.FullScreen.js"></script>
+    // Firebase Config (FASOKOCOM2)
+    const firebaseConfig = {
+      apiKey: "AIzaSyA83FA1Ne_qjYoIYHtsOXc7j3h3bdTOgLQ",
+      authDomain: "fasokocom2.firebaseapp.com",
+      projectId: "fasokocom2",
+      storageBucket: "fasokocom2.firebasestorage.app",
+      messagingSenderId: "730331164569",
+      appId: "1:730331164569:web:8e984ad9d88a30bf2c2d08"
+    };
 
-<script type="module">
+    // Init Firebase
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
+    // Nom agent
+    let fullName = prompt("Entrez votre Nom + Grade (ex: Capitaine Idrissa DIARRA)") || "Agent inconnu";
 
-import { getDatabase, ref, set, onValue, onDisconnect }
-from "https://www.gstatic.com/firebasejs/12.10.0/firebase-database.js";
-const firebaseConfig = {
-  apiKey: "AIzaSyDBrKBLYtEKUQixjNNDtvyD7CoxmjxD8P0",
-  authDomain: "fasokocom.firebaseapp.com",
-  projectId: "fasokocom",
-  storageBucket: "fasokocom.firebasestorage.app",
-  messagingSenderId: "90229130014",
-  appId: "1:90229130014:web:f34b0b33d51a2de13bff0f"
-};
+    // ID unique
+    let userId = "agent_" + Math.floor(Math.random() * 1000000);
+    let userRef = ref(db, "users/" + userId);
 
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
+    // Supprimer automatiquement quand l’utilisateur quitte
+    onDisconnect(userRef).remove();
 
-// ID unique de l'utilisateur
-let trackingStarted = false;
-let userId = "agent_" + Math.floor(Math.random() * 100000);
-let fullName = prompt("Entrez votre Nom + Grade") || "Agent inconnu";
-let userRef = ref(db, "users/" + userId);
+    // Leaflet map
+    let map = L.map("map").setView([12.6392, -8.0029], 13);
 
-onDisconnect(userRef).remove();
-
-// Carte Leaflet
-let map = L.map('map').setView([12.6392, -8.0029], 13);
-
-let normal = L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
-  maxZoom: 19
-});
-
-let satellite = L.tileLayer(
-  'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-  { maxZoom: 19 }
-);
-
-let labels = L.tileLayer(
-  'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
-  { maxZoom: 19 }
-);
-
-let satelliteWithLabels = L.layerGroup([satellite, labels]);
-
-normal.addTo(map);
-
-L.control.layers({
-  "Normal": normal,
-  "Satellite + Noms": satelliteWithLabels
-}).addTo(map);
-map.addControl(new L.Control.Fullscreen());
-
-// Afficher position
-window.showPosition = function(){
-  navigator.geolocation.getCurrentPosition(function(pos){
-
-    let lat = pos.coords.latitude;
-    let lon = pos.coords.longitude;
-
-    document.getElementById("position").innerHTML =
-    "Latitude : "+lat+"<br>Longitude : "+lon;
-
-    map.setView([lat, lon], 15);
-
-  });
-}
-
-// Carte activée
-window.showMap = function(){
-  alert("Carte activée");
-}
-
-// Marqueurs des agents
-let markers = {};
-
-function startTracking(){
-
-  if(trackingStarted) return;
-  trackingStarted = true;
-
-  // Tracking automatique + envoi Firebase
-  navigator.geolocation.watchPosition((pos) => {
-
-    let lat = pos.coords.latitude;
-    let lon = pos.coords.longitude;
-    let accuracy = pos.coords.accuracy;
-
-    document.getElementById("position").innerHTML =
-    "Latitude : "+lat+
-    "<br>Longitude : "+lon+
-    "<br>Précision : "+Math.round(accuracy)+" m";
-
-    if(accuracy > 20) return;
-    if(!userId) return;
-
-    set(ref(db, "users/" + userId), {
-      name: fullName,
-      latitude: lat,
-      longitude: lon,
-      accuracy: accuracy,
-      timestamp: Date.now()
+    let normal = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19
     });
 
-  }, (err) => {
-    alert("Erreur GPS : " + err.message);
-  }, {
-    enableHighAccuracy: true,
-    timeout: 10000,
-    maximumAge: 0
-  });
+    normal.addTo(map);
 
-  // Lire les positions de tous les agents en temps réel
-  onValue(ref(db, "users"), (snapshot) => {
+    // Marqueurs équipe
+    let markers = {};
 
-    const data = snapshot.val();
-    if(!data) return;
+    // Afficher ma position manuellement
+    window.showPosition = function(){
+      navigator.geolocation.getCurrentPosition((pos)=>{
+        let lat = pos.coords.latitude;
+        let lon = pos.coords.longitude;
+        let accuracy = pos.coords.accuracy;
 
-    for (let id in data) {
+        document.getElementById("position").innerHTML =
+          "Latitude: " + lat +
+          "<br>Longitude: " + lon +
+          "<br>Précision: " + Math.round(accuracy) + " m";
 
-      let user = data[id];
+        map.setView([lat, lon], 16);
+      }, (err)=>{
+        alert("Erreur GPS : " + err.message);
+      }, {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+      });
+    }
 
-      if(markers[id]){
-        map.removeLayer(markers[id]);
+    // Tracking automatique + envoi Firebase
+    navigator.geolocation.watchPosition((pos) => {
+      let lat = pos.coords.latitude;
+      let lon = pos.coords.longitude;
+      let accuracy = pos.coords.accuracy;
+
+      // Si précision trop mauvaise on ignore
+      if(accuracy > 50) return;
+
+      set(userRef, {
+        name: fullName,
+        latitude: lat,
+        longitude: lon,
+        accuracy: accuracy,
+        timestamp: Date.now()
+      });
+
+    }, (err) => {
+      console.log("Erreur GPS :", err.message);
+    }, {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 0
+    });
+
+    // Lire les positions en temps réel
+    onValue(ref(db, "users"), (snapshot) => {
+      const data = snapshot.val();
+      if(!data) return;
+
+      // supprimer marqueurs anciens non existants
+      for(let id in markers){
+        if(!data[id]){
+          map.removeLayer(markers[id]);
+          delete markers[id];
+        }
       }
 
-      let displayName = user.name || "Agent";
+      // ajouter / mettre à jour
+      for (let id in data) {
+        let user = data[id];
+        if(!user.latitude || !user.longitude) continue;
 
-markers[id] = L.marker([user.latitude, user.longitude])
-  .addTo(map)
-  .bindPopup("<b>" + displayName + "</b><br>Précision: " + Math.round(user.accuracy || 0) + " m");
-    }
-  });
+        let displayName = user.name || "Agent";
 
-}
-startTracking();
-</script>
+        if(markers[id]){
+          markers[id].setLatLng([user.latitude, user.longitude]);
+        } else {
+          markers[id] = L.marker([user.latitude, user.longitude])
+            .addTo(map)
+            .bindPopup("<b>" + displayName + "</b><br>Précision: " + Math.round(user.accuracy || 0) + " m");
+        }
+      }
+    });
 
+  </script>
 </body>
-
 </html>
