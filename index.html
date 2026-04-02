@@ -1,76 +1,199 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FASOKOCOM</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FASOKOCOM</title>
 
-  <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet"/>
+<link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet"/>
 
-  <style>
-    body{
-      margin:0;
-      background:#111;
-      font-family: Arial, sans-serif;
-      color:white;
-      text-align:center;
-    }
+<style>
+body{
+  background-image:url("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSFEpCV2eSOp2zF9SwupRDJ73_o2fvxfeW31w&s");
+  background-size:cover;
+  background-position:center;
+  font-family:Arial;
+  color:white;
+  text-align:center;
+  margin:0;
+}
 
-    .overlay{
-      background:rgba(0,0,0,0.7);
-      min-height:100vh;
-      padding:20px;
-    }
+.overlay{
+  background:rgba(0,0,0,0.45);
+  min-height:100vh;
+  padding-top:40px;
+  padding-bottom:40px;
+}
 
-    h1{
-      color:#00ff9c;
-      font-size:32px;
-    }
+h1{
+  font-size:40px;
+  color:#00ff9c;
+}
 
-    button{
-      padding:15px;
-      font-size:16px;
-      margin:10px;
-      border:none;
-      border-radius:8px;
-      background:#00ff9c;
-      cursor:pointer;
-      width:90%;
-      max-width:400px;
-    }
+button{
+  padding:14px 18px;
+  font-size:17px;
+  margin:10px;
+  border:none;
+  border-radius:14px;
+  background:linear-gradient(135deg, rgba(0,255,156,0.95), rgba(0,180,255,0.9));
+  color:black;
+  font-weight:bold;
+  cursor:pointer;
+  box-shadow:0 6px 18px rgba(0,0,0,0.35);
+  transition:0.2s;
+}
 
-   #map{
-      height: 500px;
-      width: 95%;
-      margin: auto;
-      border-radius: 12px;
-      border: 2px solid #00ff9c;
-      overflow: hidden;
-    }
+button:hover{
+  transform:scale(1.03);
+}
 
-    #position{
-      margin-top:10px;
-      font-size:14px;
-    }
-  </style>
+button:active{
+  transform:scale(0.98);
+}
+
+#map{
+  height:450px;
+  width:90%;
+  margin:auto;
+  border-radius:14px;
+  overflow:hidden;
+  box-shadow:0 10px 25px rgba(0,0,0,0.55);
+}
+
+/* CONTROLES MAPLIBRE -> très transparent */
+.maplibregl-ctrl-group{
+  background:rgba(0,0,0,0.15) !important;
+  backdrop-filter: blur(6px);
+  border:none !important;
+}
+
+.maplibregl-ctrl-group button{
+  background:transparent !important;
+  color:white !important;
+}
+
+.maplibregl-ctrl-group button:hover{
+  background:rgba(255,255,255,0.08) !important;
+}
+
+/* Menu déroulant */
+.mapMenu{
+  position:fixed;
+  top:90px;
+  right:20px;
+  background:rgba(0,0,0,0.30);
+  backdrop-filter: blur(6px);
+  border-radius:14px;
+  padding:10px;
+  display:none;
+  z-index:9999;
+  text-align:left;
+  box-shadow:0 10px 25px rgba(0,0,0,0.45);
+}
+
+.mapMenu button{
+  display:block;
+  width:160px;
+  background:rgba(255,255,255,0.08);
+  color:white;
+  border:none;
+  padding:12px;
+  margin:6px 0;
+  border-radius:12px;
+  cursor:pointer;
+  font-size:15px;
+  font-weight:bold;
+}
+
+.mapMenu button:hover{
+  background:rgba(255,255,255,0.18);
+}
+
+/* Bloc stats */
+.statsBox{
+  margin:15px auto;
+  width:90%;
+  max-width:420px;
+  padding:12px;
+  border-radius:14px;
+  background:rgba(0,0,0,0.25);
+  backdrop-filter: blur(6px);
+  font-size:16px;
+  box-shadow:0 10px 25px rgba(0,0,0,0.35);
+}
+
+/* Liste agents */
+.agentsList{
+  margin:15px auto;
+  width:90%;
+  max-width:420px;
+  padding:12px;
+  border-radius:14px;
+  background:rgba(0,0,0,0.25);
+  backdrop-filter: blur(6px);
+  text-align:left;
+  font-size:14px;
+  max-height:220px;
+  overflow:auto;
+  box-shadow:0 10px 25px rgba(0,0,0,0.35);
+}
+
+.agentsList li{
+  padding:10px;
+  margin-bottom:8px;
+  border-radius:12px;
+  background:rgba(255,255,255,0.06);
+  cursor:pointer;
+}
+
+.agentsList li:hover{
+  background:rgba(255,255,255,0.12);
+}
+
+@media (max-width: 768px){
+  h1{font-size:28px;}
+
+  button{
+    width:90%;
+    font-size:16px;
+    padding:14px;
+    margin:8px auto;
+    display:block;
+  }
+
+  #map{
+    height:500px;
+    width:95%;
+  }
+}
+</style>
 </head>
 
 <body>
-  <div class="overlay">
-    <h1>🇲🇱 FASOKOCOM</h1>
-    <p>Carte tactique en temps réel</p>
+<div class="overlay">
+  <h1>🇲🇱 FASOKOCOM</h1>
+  <p>Carte tactique en temps réel</p>
 
-    <button onclick="showPosition()">📍 MA POSITION</button>
-    <button onclick="showMap()">🗺 CARTE DE L'ÉQUIPE</button>
-    
-    <p id="position">Position non disponible</p>
+  <button onclick="showPosition()">📍 MA POSITION</button>
+  <button onclick="showMap()">🗺 CARTE DE L'ÉQUIPE</button>
 
-    <div id="map"></div>
+  <div class="statsBox">
+    👥 Agents connectés : <span id="agentCount">0</span>
   </div>
 
-  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+  <div class="agentsList">
+    <b>📌 Liste des agents :</b>
+    <ul id="agentsUl" style="list-style:none; padding:0; margin-top:10px;"></ul>
+  </div>
 
-  <script type="module">
+  <p id="position">Position non disponible</p>
+  <div id="map"></div>
+</div>
+
+<script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
+
+<script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
 import { getDatabase, ref, set, onValue, onDisconnect, remove } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-database.js";
 
@@ -84,7 +207,6 @@ const firebaseConfig = {
   appId: "1:730331164569:web:8e984ad9d88a30bf2c2d08"
 };
 
-// Init Firebase
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
@@ -95,36 +217,42 @@ let fullName = prompt("Entrez votre Nom + Grade (ex: Capitaine Idrissa DIARRA)")
 let userId = "agent_" + Math.floor(Math.random() * 1000000);
 let userRef = ref(db, "users/" + userId);
 
-// Supprimer automatiquement quand l’utilisateur quitte
 onDisconnect(userRef).remove();
 
-// ---------------- STYLES MAP ----------------
-const normalStyle = "https://demotiles.maplibre.org/style.json";
 
+// ---------------- STYLES ----------------
+const normalStyle = "https://demotiles.maplibre.org/style.json";
+const reliefStyle = "https://tiles.stadiamaps.com/styles/outdoors.json";
+
+// Satellite + Labels (corrigé)
 const satelliteStyle = {
   version: 8,
   sources: {
-    esri: {
+    satellite: {
       type: "raster",
       tiles: [
         "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
       ],
       tileSize: 256,
       attribution: "Esri"
+    },
+    labels: {
+      type: "raster",
+      tiles: [
+        "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"
+      ],
+      tileSize: 256,
+      attribution: "Esri Labels"
     }
   },
   layers: [
-    {
-      id: "satellite",
-      type: "raster",
-      source: "esri"
-    }
+    { id: "satellite-layer", type: "raster", source: "satellite" },
+    { id: "labels-layer", type: "raster", source: "labels" }
   ]
 };
 
-const reliefStyle = "https://tiles.stadiamaps.com/styles/outdoors.json";
 
-// ---------------- MAPLIBRE MAP ----------------
+// ---------------- MAP ----------------
 let map = new maplibregl.Map({
   container: "map",
   style: normalStyle,
@@ -134,8 +262,20 @@ let map = new maplibregl.Map({
 
 // Zoom + boussole + rotation
 map.addControl(new maplibregl.NavigationControl(), "top-right");
+map.addControl(new maplibregl.FullscreenControl(), "top-right");
 
-// ---------------- CONTROLE TYPE CARTE (comme Leaflet) ----------------
+
+
+// ---------------- MENU STYLES ----------------
+let menu = document.createElement("div");
+menu.className = "mapMenu";
+menu.innerHTML = `
+  <button id="styleNormal">🗺 Normal</button>
+  <button id="styleSatellite">🛰 Satellite</button>
+  <button id="styleRelief">⛰ Relief</button>
+`;
+document.body.appendChild(menu);
+
 class StyleSwitcherControl {
   onAdd(map) {
     this.map = map;
@@ -147,10 +287,7 @@ class StyleSwitcherControl {
     btn.title = "Changer la carte";
 
     btn.onclick = () => {
-      let choix = prompt("Choisir la carte:\n1 = Normal\n2 = Satellite\n3 = Relief");
-      if (choix === "1") map.setStyle(normalStyle);
-      if (choix === "2") map.setStyle(satelliteStyle);
-      if (choix === "3") map.setStyle(reliefStyle);
+      menu.style.display = (menu.style.display === "block") ? "none" : "block";
     };
 
     this.container.appendChild(btn);
@@ -165,24 +302,84 @@ class StyleSwitcherControl {
 
 map.addControl(new StyleSwitcherControl(), "top-right");
 
-// ---------------- MARKERS ----------------
-let markers = {}; // { id: maplibre Marker }
+document.getElementById("styleNormal").onclick = () => {
+  map.setStyle(normalStyle);
+  menu.style.display = "none";
+};
 
-// Fonction mise à jour marker
+document.getElementById("styleSatellite").onclick = () => {
+  map.setStyle(satelliteStyle);
+  menu.style.display = "none";
+};
+
+document.getElementById("styleRelief").onclick = () => {
+  map.setStyle(reliefStyle);
+  menu.style.display = "none";
+};
+
+
+// ---------------- MARKERS ----------------
+let markers = {};
+let lastData = null;
+
 function updateMarker(id, lat, lon, popupText) {
+  let markerColor = (id === userId) ? "#00ff9c" : "red";
+
   if (markers[id]) {
     markers[id].setLngLat([lon, lat]);
+    markers[id].getPopup().setHTML(popupText);
   } else {
     let popup = new maplibregl.Popup({ offset: 25 }).setHTML(popupText);
 
-    markers[id] = new maplibregl.Marker()
+    let el = document.createElement("div");
+    el.style.width = "18px";
+    el.style.height = "18px";
+    el.style.borderRadius = "50%";
+    el.style.backgroundColor = markerColor;
+    el.style.border = "2px solid white";
+    el.style.cursor = "pointer";
+
+    markers[id] = new maplibregl.Marker({ element: el })
       .setLngLat([lon, lat])
       .setPopup(popup)
       .addTo(map);
+
+    // ouverture popup mobile
+    el.addEventListener("click", (e) => {
+      e.stopPropagation();
+      popup.addTo(map);
+    });
   }
 }
 
-// ---------------- BOUTON MA POSITION ----------------
+// Recharger markers après changement de style
+function reloadMarkers() {
+  if (!lastData) return;
+
+  for (let id in markers) {
+    markers[id].remove();
+    delete markers[id];
+  }
+
+  for (let id in lastData) {
+    let user = lastData[id];
+    if (!user.latitude || !user.longitude) continue;
+
+    let displayName = user.name || "Agent";
+    let popupText =
+      "<b>" + displayName + "</b><br>Précision: " +
+      Math.round(user.accuracy || 0) + " m";
+
+    updateMarker(id, user.latitude, user.longitude, popupText);
+  }
+}
+
+map.on("style.load", () => {
+  reloadMarkers();
+});
+
+
+// ---------------- MA POSITION (ANIMATION) ----------------
 window.showPosition = function () {
   navigator.geolocation.getCurrentPosition((pos) => {
     let lat = pos.coords.latitude;
@@ -196,7 +393,10 @@ window.showPosition = function () {
 
     map.flyTo({
       center: [lon, lat],
-      zoom: 16
+      zoom: 17,
+      speed: 0.8,
+      curve: 1.6,
+      essential: true
     });
 
   }, (err) => {
@@ -208,14 +408,14 @@ window.showPosition = function () {
   });
 };
 
-// ---------------- BOUTON CARTE DE L'EQUIPE ----------------
+
+// ---------------- CARTE DE L'EQUIPE (ANIMATION) ----------------
 window.showMap = function () {
   let bounds = new maplibregl.LngLatBounds();
   let count = 0;
 
   for (let id in markers) {
-    let lngLat = markers[id].getLngLat();
-    bounds.extend(lngLat);
+    bounds.extend(markers[id].getLngLat());
     count++;
   }
 
@@ -225,10 +425,12 @@ window.showMap = function () {
   }
 
   map.fitBounds(bounds, {
-    padding: 50,
-    maxZoom: 16
+    padding: 70,
+    maxZoom: 16,
+    duration: 2000
   });
 };
+
 
 // ---------------- TRACKING + ENVOI FIREBASE ----------------
 navigator.geolocation.watchPosition((pos) => {
@@ -254,12 +456,42 @@ navigator.geolocation.watchPosition((pos) => {
   maximumAge: 0
 });
 
-// ---------------- LECTURE POSITIONS EN TEMPS REEL ----------------
+
+// ---------------- LECTURE TEMPS REEL ----------------
 onValue(ref(db, "users"), (snapshot) => {
   const data = snapshot.val();
   if (!data) return;
 
-  // Supprimer marqueurs qui n'existent plus
+  lastData = data;
+
+  // compteur
+  document.getElementById("agentCount").innerText = Object.keys(data).length;
+
+  // liste agents
+  let ul = document.getElementById("agentsUl");
+  ul.innerHTML = "";
+
+  for (let id in data) {
+    let u = data[id];
+    let nom = u.name || "Agent";
+    let precision = Math.round(u.accuracy || 0);
+
+    let li = document.createElement("li");
+    li.innerHTML = "🟢 <b>" + nom + "</b><br>📍 Précision: " + precision + " m";
+
+    li.onclick = () => {
+      map.flyTo({
+        center: [u.longitude, u.latitude],
+        zoom: 16,
+        speed: 0.8,
+        curve: 1.6
+      });
+    };
+
+    ul.appendChild(li);
+  }
+
+  // supprimer ceux qui n'existent plus
   for (let id in markers) {
     if (!data[id]) {
       markers[id].remove();
@@ -267,11 +499,11 @@ onValue(ref(db, "users"), (snapshot) => {
     }
   }
 
-  // Ajouter / mettre à jour
+  // update markers
   for (let id in data) {
     let user = data[id];
 
-    // Supprimer agents fantômes (+2 minutes)
+    // supprimer fantômes (+2 minutes)
     if (user.timestamp && (Date.now() - user.timestamp > 120000)) {
       remove(ref(db, "users/" + id));
       continue;
@@ -280,11 +512,14 @@ onValue(ref(db, "users"), (snapshot) => {
     if (!user.latitude || !user.longitude) continue;
 
     let displayName = user.name || "Agent";
-    let popupText = "<b>" + displayName + "</b><br>Précision: " + Math.round(user.accuracy || 0) + " m";
+    let popupText =
+      "<b>" + displayName + "</b><br>Précision: " +
+      Math.round(user.accuracy || 0) + " m";
 
     updateMarker(id, user.latitude, user.longitude, popupText);
   }
 });
 </script>
+
 </body>
 </html>
